@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rúbrica — Encargo Cruzado · Ergonomía DIN 7236</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --navy: #1f3864; --navy-light: #2f5496; --grey-bg: #f4f5f7; --grey-border: #d7dbe0; --text: #26303d;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--grey-bg); color: var(--text); margin: 0; padding: 0 0 60px; }
+  header.top { background: var(--navy); color: #fff; padding: 28px 24px 22px; }
+  header.top h1 { margin: 0 0 4px; font-size: 22px; }
+  header.top p { margin: 0; font-size: 14px; color: #cdd7ea; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+  .card { background: #fff; border: 1px solid var(--grey-border); border-radius: 8px; padding: 20px 22px; margin-top: 20px; }
+  .card h2 { font-size: 16px; color: var(--navy); margin: 0 0 14px; border-bottom: 2px solid var(--grey-border); padding-bottom: 8px; }
+  .grid-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  label.field-label { display: block; font-size: 12px; font-weight: 600; color: #55606e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .03em; }
+  input[type="text"], input[type="date"], input[type="number"], select, textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--grey-border); border-radius: 5px; font-size: 14px; font-family: inherit; background: #fff;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  .round-toggle, .role-toggle { display: flex; gap: 16px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+  .round-toggle label, .role-toggle label { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .role-toggle { gap: 10px; }
+  .role-btn {
+    padding: 10px 18px; border: 2px solid var(--navy); border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; color: var(--navy); background: #fff;
+  }
+  .role-btn.active { background: var(--navy); color: #fff; }
+
+  .weight-row { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+  .weight-box { display: flex; align-items: center; gap: 8px; }
+  .weight-box input { width: 70px; }
+
+  table.rubric { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  table.rubric th, table.rubric td { border: 1px solid var(--grey-border); padding: 10px; font-size: 13px; vertical-align: top; }
+  table.rubric th { background: var(--navy-light); color: #fff; font-weight: 600; text-align: left; }
+  .crit-name { font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .crit-levels { font-size: 11.5px; color: #5b6572; line-height: 1.55; }
+  .score-cell { width: 130px; text-align: center; }
+  .score-cell input { text-align: center; font-weight: 700; }
+  .banda-tag { margin-top: 5px; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 10px; display: inline-block; color: #fff; }
+  .row-na { opacity: .4; }
+  .row-na input { pointer-events: none; background: #eee; }
+
+  .banda-ref { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .banda-chip { font-size: 11px; padding: 4px 8px; border-radius: 12px; color: #fff; font-weight: 600; }
+
+  .totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; margin-top: 18px; }
+  .total-box { background: var(--grey-bg); border: 1px solid var(--grey-border); border-radius: 6px; padding: 12px 14px; text-align: center; }
+  .total-box .num { font-size: 24px; font-weight: 800; color: var(--navy); }
+  .total-box .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #667; margin-top: 2px; }
+  .total-box.final { background: var(--navy); }
+  .total-box.final .num { color: #fff; }
+  .total-box.final .lbl { color: #cdd7ea; }
+
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+  button { background: var(--navy); color: #fff; border: none; padding: 11px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button.secondary { background: #fff; color: var(--navy); border: 1px solid var(--navy); }
+  button.excel { background: #1e7145; }
+  button:hover { filter: brightness(1.1); }
+
+  .note { font-size: 12.5px; color: #667; background: #fff9e8; border: 1px solid #f0e0a8; border-radius: 6px; padding: 10px 12px; margin-top: 14px; }
+  .hidden { display: none !important; }
+
+  @media print {
+    header.top { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .btns, .note.no-print, .role-toggle { display: none !important; }
+    .card { break-inside: avoid; border: 1px solid #999; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1 id="pageTitle">Rúbrica — Entrega Conceptual</h1>
+    <p>Encargo Cruzado (Pista B) · Ergonomía — DIN 7236 · NRC 1482</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>¿A quién está evaluando?</h2>
+    <div class="role-toggle">
+      <button type="button" class="role-btn active" id="btnConsultor" onclick="setRole('consultor')">Equipo Consultor — entrega conceptual</button>
+      <button type="button" class="role-btn" id="btnCliente" onclick="setRole('cliente')">Empresa Cliente — calidad de la objeción</button>
+    </div>
+    <div class="note" style="margin-top:12px;">
+      <b>Equipo Consultor:</b> evalúa la propuesta conceptual presentada (docente + empresa cliente califican juntos).<br>
+      <b>Empresa Cliente:</b> evalúa la capacidad del equipo que objeta para formular preguntas críticas y contraargumentar (solo la docente califica).
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Datos de la sesión</h2>
+    <div class="grid-meta">
+      <div>
+        <label class="field-label" id="lblEquipoConsultor">Equipo consultor (presenta la propuesta)</label>
+        <input type="text" id="equipoConsultor" placeholder="Ej. Sazón Industrial S.A.S.">
+      </div>
+      <div>
+        <label class="field-label" id="lblEmpresaCliente">Empresa cliente (autora del brief)</label>
+        <input type="text" id="empresaCliente" placeholder="Ej. Rueda Libre Movilidad">
+      </div>
+      <div>
+        <label class="field-label">Fecha</label>
+        <input type="date" id="fecha">
+      </div>
+      <div>
+        <label class="field-label">Ronda</label>
+        <div class="round-toggle">
+          <label><input type="radio" name="ronda" value="1" id="ronda1" checked> Ronda 1 (física)</label>
+          <label><input type="radio" name="ronda" value="2" id="ronda2"> Ronda 2 (integrada)</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="weightCard">
+    <h2>Ponderación de la evaluación</h2>
+    <div class="weight-row">
+      <div class="weight-box">
+        <label class="field-label" style="margin:0;">Peso docente (%)</label>
+        <input type="number" id="pesoDocente" value="70" min="0" max="100">
+      </div>
+      <div class="weight-box">
+        <label class="field-label" style="margin:0;">Peso cliente (%)</label>
+        <input type="number" id="pesoCliente" value="30" min="0" max="100" readonly style="background:#eee;">
+      </div>
+      <div class="note" style="margin:0; flex:1;">70/30 por defecto. Ajusta el peso docente y el del cliente se recalcula solo.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Escala de calificación por criterio (0.0 – 5.0)</h2>
+    <div class="banda-ref">
+      <span class="banda-chip" style="background:#2e7d32;">Excelente 4.6–5.0</span>
+      <span class="banda-chip" style="background:#558b2f;">Avanzado 4.0–4.5</span>
+      <span class="banda-chip" style="background:#c99a2e;">En proceso 3.0–3.9</span>
+      <span class="banda-chip" style="background:#e07b00;">Incipiente 2.0–2.9</span>
+      <span class="banda-chip" style="background:#c00000;">Ausencia de progreso 0–1.9</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="rubricTitle">Criterios — Entrega Conceptual</h2>
+    <table class="rubric" id="rubricTable">
+      <thead id="rubricHead">
+        <tr>
+          <th style="width:32%;">Criterio</th>
+          <th>Niveles de desempeño</th>
+          <th class="score-cell">Docente</th>
+          <th class="score-cell" id="thCliente">Cliente</th>
+        </tr>
+      </thead>
+      <tbody id="rubricBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Resultado</h2>
+    <div class="totals" id="totalsBox"></div>
+  </div>
+
+  <div class="card">
+    <h2>Retroalimentación</h2>
+    <label class="field-label" id="lblFbDocente">Retroalimentación docente</label>
+    <textarea id="fbDocente" placeholder="Comentarios de la profesora..."></textarea>
+    <div style="height:14px;" id="fbClienteSpacer"></div>
+    <label class="field-label hidden" id="lblFbCliente">Retroalimentación del cliente</label>
+    <textarea class="hidden" id="fbCliente" placeholder="Comentarios del equipo cliente: ¿qué objeción quedó sin resolver? ¿qué valoran de la propuesta?..."></textarea>
+  </div>
+
+  <div class="note no-print">
+    <b>Sobre esta página:</b> archivo autónomo (HTML/CSS/JS) pensado para GitHub Pages. Los datos quedan solo en el navegador de quien la diligencia — no hay almacenamiento centralizado. Al terminar, usa <b>"Descargar Excel"</b> (genera un .xlsx real con todos los puntajes) y entrégalo por el canal que uses. Requiere conexión a internet para cargar la librería de exportación a Excel (se carga desde una CDN pública).
+  </div>
+
+  <div class="btns no-print">
+    <button class="excel" onclick="descargarExcel()">Descargar Excel (.xlsx)</button>
+    <button class="secondary" onclick="window.print()">Imprimir / Guardar como PDF</button>
+    <button class="secondary" onclick="reiniciar()">Reiniciar formulario</button>
+  </div>
+
+</div>
+
+<script>
+// ---------- CRITERIOS: EQUIPO CONSULTOR (entrega conceptual) ----------
+const CONSULTOR_CRITERIOS = [
+  { id:"c1", nombre:"1. Comprensión del brief y del usuario específico", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No hay evidencia de haber leído el brief; el concepto es genérico o no reconoce el usuario.",
+    "Incipiente — Menciona el usuario o la restricción, pero de forma superficial, sin conectarla con el concepto.",
+    "En proceso — Reconoce el usuario y la restricción, aunque de forma parcial o con inconsistencias.",
+    "Avanzado — Responde con claridad al usuario específico y a la restricción dura de la empresa.",
+    "Excelente — Además de responder al brief, anticipa una tensión o matiz que el brief no hacía explícito.",
+  ]},
+  { id:"c2", nombre:"2. Fundamentación técnica (antropométrica/biomecánica y, en Ronda 2, cognitiva/emocional)", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — Sin evidencia técnica; las decisiones no se sustentan en datos ni referentes.",
+    "Incipiente — Menciona algún dato o referente, sin conectarlo con la decisión de diseño.",
+    "En proceso — Sustenta parcialmente las decisiones, con vacíos entre el dato y la decisión.",
+    "Avanzado — Sustenta las decisiones clave con datos propios o referentes verificables.",
+    "Excelente — Sustenta con datos propios y contrasta con al menos un referente documentado.",
+  ]},
+  { id:"c3", nombre:"3. Exploración de alternativas y rastro de iteración", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — Una sola alternativa, sin evidencia de exploración.",
+    "Incipiente — Bocetos de más de una alternativa, sin explicar descartes.",
+    "En proceso — Explora 2 alternativas con justificación parcial de descarte.",
+    "Avanzado — Explora al menos 3 alternativas con rastro de iteración y explica qué se descartó y por qué.",
+    "Excelente — Además, el rastro muestra cómo cada iteración responde a una limitación detectada en la anterior.",
+  ]},
+  { id:"c4", nombre:"4. Justificación de la dirección conceptual elegida", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No hay justificación, o se atribuye a una herramienta de IA.",
+    "Incipiente — Justificación superficial, sin conexión con el diagnóstico o el brief.",
+    "En proceso — Justificación parcial, conectada de forma incompleta con los hallazgos previos.",
+    "Avanzado — Justificación propia y clara, conectada con los hallazgos previos.",
+    "Excelente — Justificación propia que además anticipa la objeción más probable del cliente.",
+  ]},
+  { id:"c5", nombre:"5. Restricción de diversidad funcional (solo Ronda 2)", aplicaSiempre:false, niveles:[
+    "Ausencia de progreso — No se aborda la restricción de diversidad funcional del brief.",
+    "Incipiente — Se menciona, sin reflejarse en ninguna decisión concreta.",
+    "En proceso — Se refleja parcialmente, en una decisión menor o secundaria.",
+    "Avanzado — Se refleja en al menos una decisión concreta del concepto.",
+    "Excelente — Se refleja de forma integrada, como parte de la lógica del concepto, no como ajuste adicional.",
+  ]},
+  { id:"c6", nombre:"6. Claridad de la comunicación del concepto", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — Bocetos o diagramas insuficientes para entender el concepto.",
+    "Incipiente — Se entiende solo con mucho apoyo oral adicional.",
+    "En proceso — Se entiende con apoyo oral moderado; los bocetos por sí solos son ambiguos.",
+    "Avanzado — Bocetos y diagramas comunican el concepto con claridad, con o sin apoyo oral.",
+    "Excelente — La comunicación visual es clara y además anticipa cómo se vería en uso.",
+  ]},
+  { id:"c7", nombre:"7. Capacidad de respuesta ante la objeción del cliente", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No responde, o responde sin relación con lo preguntado.",
+    "Incipiente — Responde de forma defensiva, sin reconocer el punto válido.",
+    "En proceso — Responde parcialmente, reconoce algo válido pero no ajusta su argumento.",
+    "Avanzado — Responde con argumento propio y reconoce los puntos válidos de la objeción.",
+    "Excelente — Responde y ajusta o matiza su propuesta en tiempo real a partir de la objeción.",
+  ]},
+];
+
+// ---------- CRITERIOS: EMPRESA CLIENTE (calidad de la objeción) ----------
+const CLIENTE_CRITERIOS = [
+  { id:"cc1", nombre:"1. Calidad de la pregunta de datos (sombrero blanco)", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No formula pregunta sobre los datos, o es retórica sin exigir evidencia.",
+    "Incipiente — Pregunta genérica sobre los datos, sin relación con el caso presentado.",
+    "En proceso — Cuestiona algún dato, sin precisar qué evidencia falta o por qué es insuficiente.",
+    "Avanzado — Cuestiona con precisión la verificabilidad o suficiencia de un dato específico.",
+    "Excelente — Además, identifica qué evidencia adicional resolvería la duda planteada.",
+  ]},
+  { id:"cc2", nombre:"2. Calidad de la pregunta de riesgo (sombrero negro)", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No señala ningún riesgo, o repite uno genérico no relacionado con el caso.",
+    "Incipiente — Señala un riesgo posible, sin conectarlo con la propuesta específica.",
+    "En proceso — Señala un riesgo relacionado con la propuesta, aunque de forma imprecisa.",
+    "Avanzado — Identifica un riesgo o modo de error específico no mitigado en la propuesta.",
+    "Excelente — Identifica el riesgo y explica su posible consecuencia para el usuario o la empresa.",
+  ]},
+  { id:"cc3", nombre:"3. Calidad de la pregunta de valor (sombrero amarillo)", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No cuestiona el valor de la propuesta, o lo hace sin ningún criterio.",
+    "Incipiente — Pregunta si \"sirve\" o \"es bueno\", sin exigir justificación.",
+    "En proceso — Cuestiona el valor, sin comparar con la solución actual o una alternativa.",
+    "Avanzado — Cuestiona con criterio el beneficio real frente a la solución actual.",
+    "Excelente — Además, plantea bajo qué condición el beneficio dejaría de justificar el costo o la complejidad.",
+  ]},
+  { id:"cc4", nombre:"4. Calidad de la pregunta de alternativas (sombrero verde)", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No pregunta por alternativas no exploradas.",
+    "Incipiente — Pregunta si \"pensaron en otra cosa\", sin proponer cuál.",
+    "En proceso — Sugiere una alternativa genérica, sin conexión con el punto 7 del brief.",
+    "Avanzado — Contrasta la propuesta con la alternativa que el propio brief descartó de antemano (punto 7).",
+    "Excelente — Además, argumenta por qué esa alternativa merecería reconsiderarse a la luz de lo presentado.",
+  ]},
+  { id:"cc5", nombre:"5. Calidad de la pregunta de usuario (sombrero rojo)", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — No cuestiona la evidencia de validación, o la acepta sin revisar.",
+    "Incipiente — Pregunta si \"el usuario lo va a usar\", sin pedir evidencia.",
+    "En proceso — Pide evidencia de validación, pero acepta una respuesta vaga sin insistir.",
+    "Avanzado — Exige evidencia concreta de validación con un usuario real, no un supuesto.",
+    "Excelente — Además, cuestiona si el usuario validado representa a la población definida en su propio brief.",
+  ]},
+  { id:"cc6", nombre:"6. Capacidad de contraargumentar", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — Se conforma con la primera respuesta del equipo consultor, sin insistir.",
+    "Incipiente — Repite la misma pregunta sin aportar un argumento nuevo.",
+    "En proceso — Insiste con un argumento adicional, aunque de fundamento débil.",
+    "Avanzado — Sostiene su posición con un argumento adicional y fundamentado.",
+    "Excelente — Sostiene su posición y reconoce explícitamente si la respuesta recibida resuelve o no la objeción.",
+  ]},
+  { id:"cc7", nombre:"7. Conocimiento del propio brief", aplicaSiempre:true, niveles:[
+    "Ausencia de progreso — Las preguntas no reflejan conocimiento del brief que ellos mismos redactaron.",
+    "Incipiente — Conoce el brief de forma general, sin referirse a puntos específicos.",
+    "En proceso — Se refiere a partes del brief, con imprecisiones sobre lo que realmente escribieron.",
+    "Avanzado — Las preguntas citan con precisión restricciones o criterios de éxito de su propio brief.",
+    "Excelente — Además, señala si el equipo consultor se desvió de lo que el brief pedía explícitamente.",
+  ]},
+];
+
+let ROLE = "consultor"; // 'consultor' | 'cliente'
+
+function bandaDe(score) {
+  if (score === "" || score === null || isNaN(score)) return { label:"—", color:"#999" };
+  const v = parseFloat(score);
+  if (v >= 4.6) return { label:"Excelente", color:"#2e7d32" };
+  if (v >= 4.0) return { label:"Avanzado", color:"#558b2f" };
+  if (v >= 3.0) return { label:"En proceso", color:"#c99a2e" };
+  if (v >= 2.0) return { label:"Incipiente", color:"#e07b00" };
+  if (v >= 0)   return { label:"Ausencia de progreso", color:"#c00000" };
+  return { label:"—", color:"#999" };
+}
+
+function scoreInputHtml(critId, quien) {
+  return `<input type="number" min="0" max="5" step="0.1" id="${critId}-${quien}" oninput="onScoreInput('${critId}','${quien}')" placeholder="Ej: 4.2">
+          <div class="banda-tag" id="tag-${critId}-${quien}" style="background:#999;">—</div>`;
+}
+
+function onScoreInput(critId, quien) {
+  const el = document.getElementById(critId + "-" + quien);
+  let v = el.value;
+  if (v !== "") {
+    v = Math.max(0, Math.min(5, parseFloat(v)));
+    el.value = v;
+  }
+  const b = bandaDe(v);
+  const tag = document.getElementById("tag-" + critId + "-" + quien);
+  tag.textContent = b.label;
+  tag.style.background = b.color;
+  recalcular();
+}
+
+function renderRubric() {
+  const criterios = ROLE === "consultor" ? CONSULTOR_CRITERIOS : CLIENTE_CRITERIOS;
+  const tbody = document.getElementById("rubricBody");
+  tbody.innerHTML = "";
+  criterios.forEach(c => {
+    const tr = document.createElement("tr");
+    tr.id = "row-" + c.id;
+    tr.innerHTML = `
+      <td><div class="crit-name">${c.nombre}</div></td>
+      <td><div class="crit-levels">${c.niveles.map(n => "<div>" + n + "</div>").join("")}</div></td>
+      <td class="score-cell">${scoreInputHtml(c.id, "doc")}</td>
+      <td class="score-cell docCell-cli">${scoreInputHtml(c.id, "cli")}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("thCliente").classList.toggle("hidden", ROLE === "cliente");
+  document.querySelectorAll(".docCell-cli").forEach(el => el.classList.toggle("hidden", ROLE === "cliente"));
+  toggleRonda();
+}
+
+function setRole(role) {
+  ROLE = role;
+  document.getElementById("btnConsultor").classList.toggle("active", role === "consultor");
+  document.getElementById("btnCliente").classList.toggle("active", role === "cliente");
+  document.getElementById("weightCard").classList.toggle("hidden", role === "cliente");
+  document.getElementById("pageTitle").textContent = role === "consultor" ? "Rúbrica — Entrega Conceptual" : "Rúbrica — Calidad de la Objeción";
+  document.getElementById("rubricTitle").textContent = role === "consultor" ? "Criterios — Entrega Conceptual (Equipo Consultor)" : "Criterios — Calidad de la Objeción (Empresa Cliente)";
+  document.getElementById("lblEquipoConsultor").textContent = role === "consultor" ? "Equipo consultor (presenta la propuesta)" : "Equipo consultor (a quien se le objeta)";
+  document.getElementById("lblEmpresaCliente").textContent = role === "consultor" ? "Empresa cliente (autora del brief)" : "Empresa cliente (evaluada por la calidad de su objeción)";
+  document.getElementById("lblFbCliente").classList.toggle("hidden", role === "cliente");
+  document.getElementById("fbCliente").classList.toggle("hidden", role === "cliente");
+  document.getElementById("lblFbDocente").textContent = role === "consultor" ? "Retroalimentación docente" : "Retroalimentación docente sobre la calidad de la objeción";
+  renderRubric();
+}
+
+function toggleRonda() {
+  if (ROLE !== "consultor") { recalcular(); return; }
+  const ronda2 = document.getElementById("ronda2").checked;
+  const row = document.getElementById("row-c5");
+  if (!row) { recalcular(); return; }
+  const inputs = row.querySelectorAll("input[type=number]");
+  if (ronda2) {
+    row.classList.remove("row-na");
+    inputs.forEach(i => i.disabled = false);
+  } else {
+    row.classList.add("row-na");
+    inputs.forEach(i => { i.value = ""; i.disabled = true; });
+    row.querySelectorAll(".banda-tag").forEach(t => { t.textContent = "—"; t.style.background = "#999"; });
+  }
+  recalcular();
+}
+document.getElementById("ronda1").addEventListener("change", toggleRonda);
+document.getElementById("ronda2").addEventListener("change", toggleRonda);
+
+document.getElementById("pesoDocente").addEventListener("input", (e) => {
+  let v = parseFloat(e.target.value);
+  if (isNaN(v)) v = 0;
+  v = Math.max(0, Math.min(100, v));
+  e.target.value = v;
+  document.getElementById("pesoCliente").value = (100 - v).toFixed(0);
+  recalcular();
+});
+
+function criteriosActivos() {
+  const criterios = ROLE === "consultor" ? CONSULTOR_CRITERIOS : CLIENTE_CRITERIOS;
+  if (ROLE !== "consultor") return criterios;
+  const ronda2 = document.getElementById("ronda2").checked;
+  return criterios.filter(c => c.aplicaSiempre || ronda2);
+}
+
+function promedio(valores) {
+  const nums = valores.filter(v => v !== "" && v !== null && !isNaN(v)).map(parseFloat);
+  if (!nums.length) return 0;
+  return nums.reduce((a,b) => a+b, 0) / nums.length;
+}
+
+function recalcular() {
+  const activos = criteriosActivos();
+  const valsDoc = activos.map(c => document.getElementById(c.id + "-doc") ? document.getElementById(c.id + "-doc").value : "");
+  const notaDoc = promedio(valsDoc);
+
+  const totalsBox = document.getElementById("totalsBox");
+  if (ROLE === "consultor") {
+    const valsCli = activos.map(c => document.getElementById(c.id + "-cli") ? document.getElementById(c.id + "-cli").value : "");
+    const notaCli = promedio(valsCli);
+    const pesoDoc = parseFloat(document.getElementById("pesoDocente").value || 0) / 100;
+    const pesoCli = parseFloat(document.getElementById("pesoCliente").value || 0) / 100;
+    const notaFinal = (notaDoc * pesoDoc) + (notaCli * pesoCli);
+    totalsBox.innerHTML = `
+      <div class="total-box"><div class="num">${notaDoc.toFixed(2)}</div><div class="lbl">Promedio docente</div></div>
+      <div class="total-box"><div class="num">${notaCli.toFixed(2)}</div><div class="lbl">Promedio cliente</div></div>
+      <div class="total-box final"><div class="num">${notaFinal.toFixed(1)}</div><div class="lbl">Nota final ponderada (0.0–5.0)</div></div>
+    `;
+  } else {
+    totalsBox.innerHTML = `
+      <div class="total-box final"><div class="num">${notaDoc.toFixed(1)}</div><div class="lbl">Nota final — calidad de la objeción (0.0–5.0)</div></div>
+    `;
+  }
+}
+
+function val(id) { return document.getElementById(id).value || ""; }
+
+function descargarExcel() {
+  const activos = criteriosActivos();
+  const rows = [];
+  rows.push(["Rúbrica " + (ROLE === "consultor" ? "Entrega Conceptual" : "Calidad de la Objeción") + " — Ergonomía DIN 7236 · NRC 1482"]);
+  rows.push([]);
+  rows.push(["Equipo consultor", val("equipoConsultor")]);
+  rows.push(["Empresa cliente", val("empresaCliente")]);
+  rows.push(["Fecha", val("fecha")]);
+  rows.push(["Ronda", document.getElementById("ronda2").checked ? "2 (integrada)" : "1 (física)"]);
+  if (ROLE === "consultor") {
+    rows.push(["Peso docente (%)", val("pesoDocente")]);
+    rows.push(["Peso cliente (%)", val("pesoCliente")]);
+  }
+  rows.push([]);
+  if (ROLE === "consultor") {
+    rows.push(["Criterio", "Nota docente (0-5)", "Banda docente", "Nota cliente (0-5)", "Banda cliente"]);
+    activos.forEach(c => {
+      const dv = val(c.id + "-doc"), cv = val(c.id + "-cli");
+      rows.push([c.nombre, dv, bandaDe(dv).label, cv, bandaDe(cv).label]);
+    });
+  } else {
+    rows.push(["Criterio", "Nota docente (0-5)", "Banda"]);
+    activos.forEach(c => {
+      const dv = val(c.id + "-doc");
+      rows.push([c.nombre, dv, bandaDe(dv).label]);
+    });
+  }
+  rows.push([]);
+  const notaFinalTxt = document.querySelector(".total-box.final .num").textContent;
+  rows.push(["NOTA FINAL (0.0-5.0)", notaFinalTxt]);
+  rows.push([]);
+  rows.push(["Retroalimentación docente", val("fbDocente")]);
+  if (ROLE === "consultor") rows.push(["Retroalimentación cliente", val("fbCliente")]);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{wch:45},{wch:16},{wch:20},{wch:16},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Rúbrica");
+  const nombre = (val("equipoConsultor") + "_" + (ROLE === "consultor" ? "conceptual" : "objecion")).replace(/\s+/g, "_") || "rubrica";
+  XLSX.writeFile(wb, nombre + ".xlsx");
+}
+
+function reiniciar() {
+  if (confirm("¿Reiniciar todo el formulario? Se perderá lo diligenciado.")) location.reload();
+}
+
+renderRubric();
+</script>
+
+</body>
+</html>
